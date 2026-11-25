@@ -443,10 +443,10 @@ class MainActivity : ClintActivity(), OverlayHostActivity, SnackbarHostActivity,
                 restoreTabs()
                 openNewTab(isIncognito = false, url = intentUrl)
             } else {
-                val restored = restoreTabs()
+                restoreTabs()
                 if (shouldReopenInIncognito()) {
                     openNewTab(isIncognito = true, url = getHomepageUrl(true))
-                } else if (!restored) {
+                } else {
                     openNewTab(isIncognito = false, url = getHomepageUrl(false))
                 }
             }
