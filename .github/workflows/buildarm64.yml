@@ -42,7 +42,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build GitHub Debug APK
-        run: ./gradlew assembleGithubDebug -PonlyAbi=arm64-v8a -x lintVitalGithubDebug
+        run: ./gradlew assembleGithubDebug -PonlyAbi=arm64-v8a
 
       - name: List generated APKs
         run: find app/build/outputs/apk/github/debug -name "*.apk" | sort
