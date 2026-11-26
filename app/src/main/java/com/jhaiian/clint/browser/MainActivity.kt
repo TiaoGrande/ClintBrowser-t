@@ -447,7 +447,7 @@ class MainActivity : ClintActivity(), OverlayHostActivity, SnackbarHostActivity,
                 if (shouldReopenInIncognito()) {
                     openNewTab(isIncognito = true, url = getHomepageUrl(true))
                 } else {
-                    openNewTab(isIncognito = false, url = getHomepageUrl(false))
+                    openOrReuseHomepageTab()
                 }
             }
         }

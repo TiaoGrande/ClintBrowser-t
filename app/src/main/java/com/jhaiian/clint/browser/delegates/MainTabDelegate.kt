@@ -612,3 +612,66 @@ private fun MainActivity.closeTabAndSwitchTo(tab: BrowserTab, targetId: String):
     attachActiveWebView()
     return true
 }
+
+internal fun MainActivity.openOrReuseHomepageTab() {
+    val homepageUrl = getHomepageUrl(false)
+    val activeProfileId = tabManager.activeProfileId
+
+    val matchingTabs = tabManager.tabs.withIndex().filter { (_, tab) ->
+        !tab.isIncognito &&
+            !tab.isRefreshLinkTab &&
+            tab.shortcutId == null &&
+            tabManager.effectiveShortcutId(tab) == null &&
+            !tabManager.isGhostTab(tab) &&
+            tab.profileId == activeProfileId &&
+            sameHomepageUrl(
+                tab.webView.url?.takeIf { it.isNotBlank() && it != "about:blank" } ?: tab.url,
+                homepageUrl
+            )
+    }
+
+    val target = matchingTabs.firstOrNull { it.index == tabManager.activeIndex }
+        ?: matchingTabs.maxByOrNull { it.value.lastActiveAt }
+
+    if (target != null) {
+        tabManager.switchTo(target.index)
+        attachActiveWebView()
+    } else {
+        openNewTab(isIncognito = false, url = homepageUrl)
+    }
+}
+
+private fun sameHomepageUrl(candidateUrl: String?, homepageUrl: String): Boolean {
+    if (candidateUrl.isNullOrBlank()) return false
+
+    if (
+        com.jhaiian.clint.browser.home.isClintHomeUrl(candidateUrl) &&
+        com.jhaiian.clint.browser.home.isClintHomeUrl(homepageUrl)
+    ) {
+        return true
+    }
+
+    val candidate = runCatching { android.net.Uri.parse(candidateUrl) }.getOrNull() ?: return false
+    val homepage = runCatching { android.net.Uri.parse(homepageUrl) }.getOrNull() ?: return false
+
+    val candidateScheme = candidate.scheme?.lowercase() ?: return false
+    val homepageScheme = homepage.scheme?.lowercase() ?: return false
+    val candidateHost = candidate.host?.lowercase() ?: return false
+    val homepageHost = homepage.host?.lowercase() ?: return false
+
+    fun normalizedPort(uri: android.net.Uri, scheme: String): Int =
+        when {
+            uri.port == 80 && scheme == "http" -> -1
+            uri.port == 443 && scheme == "https" -> -1
+            else -> uri.port
+        }
+
+    return candidateScheme == homepageScheme &&
+        candidateHost == homepageHost &&
+        normalizedPort(candidate, candidateScheme) == normalizedPort(homepage, homepageScheme) &&
+        candidate.encodedUserInfo == homepage.encodedUserInfo &&
+        (candidate.encodedPath.orEmpty().ifEmpty { "/" }) ==
+            (homepage.encodedPath.orEmpty().ifEmpty { "/" }) &&
+        candidate.encodedQuery == homepage.encodedQuery &&
+        candidate.encodedFragment == homepage.encodedFragment
+}
